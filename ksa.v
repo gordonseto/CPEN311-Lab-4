@@ -20,9 +20,9 @@ reg wren;
 
 reg [8:0] i;
 reg [8:0] j;
-reg [8:0] si;
-reg [8:0] sj;
-reg [8:0] temp;
+reg [7:0] si;
+reg [7:0] sj;
+reg [7:0] temp;
 
 wire [23:0] secret_key;
 assign secret_key[23:10] = 1'b0;
@@ -63,7 +63,11 @@ always_ff @(posedge CLOCK_50, negedge KEY[3])
 		end
 		state_computejreadsj: begin
 			si = q;
-			j = (j + si + secret_key[i%KEY_LENGTH])%256;
+			case(i%KEY_LENGTH) 
+				0: j = (j + si + secret_key[23:16])%256;
+				1: j = (j + si + secret_key[15:8])%256;
+				2: j = (j + si + secret_key[7:0])%256;
+			endcase
 			temp = si;
 			address <= j[7:0];
 			state <= state_donothingsj;
@@ -75,13 +79,13 @@ always_ff @(posedge CLOCK_50, negedge KEY[3])
 			sj = q;
 			wren <= 1'b1;
 			address <= i[7:0];
-			data <= sj;
+			data <= sj[7:0];
 			state <= state_writesj;
 		end
 		state_writesj: begin
 			wren <= 1'b1;
 			address <= j[7:0];
-			data <= temp;
+			data <= temp[7:0];
 			i = i + 1;
 			if (i < 256) begin
 				state <= state_readsi;
