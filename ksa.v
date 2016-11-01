@@ -167,7 +167,15 @@ always_ff @(posedge CLOCK_50, negedge KEY[3])
 			data_d <= f ^ encrypted_input;
 			address_d <= k[4:0];
 			wren_d <= 1'b1;
-			state <= state_incrementk;
+			if ((8'b01100001 > (f ^ encrypted_input)) || ((f ^ encrypted_input) > 8'b01111010)) begin
+				if ((f^encrypted_input) != 32) begin
+					state <= state_add_secret_key;
+				end else begin
+					state <= state_incrementk;
+				end
+			end else begin
+				state <= state_incrementk;
+			end
 		end
 		state_incrementk: begin
 			wren_d <= 1'b0;
@@ -175,14 +183,17 @@ always_ff @(posedge CLOCK_50, negedge KEY[3])
 			if (k < MESSAGE_LENGTH ) begin
 				state <= state_readsi2;
 			end else begin
-				state <= state_add_secret_key;
+				secret_key = 24'b001000000000000000000000;
+				state <= state_done;
 			end
 		end
 		state_add_secret_key: begin
+			wren_d <= 1'b0;
 			secret_key = secret_key + 1;
 			if (secret_key < 24'b010000000000000000000000) begin
 				state <= state_init;
 			end else begin
+				secret_key = 24'b000100000000000000000000;
 				state <= state_done;
 			end
 		end
