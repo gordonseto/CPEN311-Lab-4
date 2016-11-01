@@ -10,7 +10,7 @@ output [9:0] LEDR;
 
 typedef enum {state_init, state_fill, state_readsi, state_donothingsi, state_computejreadsj, state_donothingsj, state_writesi, state_writesj, state_transition,
 				state_readsi2, state_donothingsi2, state_computejreadsj2, state_donothingsj2, state_writesi2, state_writesj2, state_reads3, state_donothings3, 
-				state_readROM, state_donothingROM, state_writeRAM, state_incrementk, state_done} state_type;
+				state_readROM, state_donothingROM, state_writeRAM, state_incrementk, state_add_secret_key, state_done} state_type;
 state_type state;
 
 // these are signals that connect to the memory
@@ -26,10 +26,9 @@ reg [7:0] si;
 reg [7:0] sj;
 reg [7:0] temp;
 
-wire [23:0] secret_key;
-assign secret_key[23:10] = 1'b0;
-assign secret_key[9:0] = SW;
+reg [23:0] secret_key;
 parameter KEY_LENGTH = 3;
+assign LEDR = secret_key[21:12];
 
 reg [5:0] k;
 parameter MESSAGE_LENGTH = 32;
@@ -50,6 +49,7 @@ always_ff @(posedge CLOCK_50, negedge KEY[3])
 	if (KEY[3] == 0) begin
 		state <= state_init;
 		i = 0;
+		secret_key = 0;
 	end else
 	case (state)
 		state_init: begin
@@ -174,6 +174,14 @@ always_ff @(posedge CLOCK_50, negedge KEY[3])
 			k = k + 1;
 			if (k < MESSAGE_LENGTH ) begin
 				state <= state_readsi2;
+			end else begin
+				state <= state_add_secret_key;
+			end
+		end
+		state_add_secret_key: begin
+			secret_key = secret_key + 1;
+			if (secret_key < 24'b010000000000000000000000) begin
+				state <= state_init;
 			end else begin
 				state <= state_done;
 			end
